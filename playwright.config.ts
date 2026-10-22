@@ -27,7 +27,7 @@ export default defineConfig({
     ['list'],
     ['blob'],
     ['html', {
-      open: 'always',  // 'always' | 'never' | 'on-failure'
+      open: process.env.CI ? 'never' : 'always',  // 'always' | 'never' | 'on-failure' — never on CI so the job doesn't hang serving the report
     }],
   ],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
