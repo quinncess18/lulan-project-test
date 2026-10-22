@@ -1,0 +1,25 @@
+{
+  "name": "lulan-project-test",
+  "version": "1.0.0",
+  "description": "Live-site UI testing for LULAN PH (lulan.com.ph)",
+  "scripts": {
+    "test": "playwright test",
+    "test:smoke": "playwright test --project=smoke-chromium",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "report": "playwright show-report"
+  },
+  "keywords": [
+    "playwright",
+    "e2e",
+    "smoke",
+    "visual-testing"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "@types/node": "^25.5.2"
+  }
+}
