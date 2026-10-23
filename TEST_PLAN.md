@@ -85,8 +85,7 @@ The key idea is to **intercept the browser's network calls with Playwright `page
 
 ### 3.3 Forms — `tests/forms/*.spec.ts` (real, no mocks)
 
-Covered: logistics freight estimate + shipment tracker, travel booking, car rental calculator.
-**Still to do:** contact form, IT quote basket, chat widget.
+Covered: logistics freight estimate + shipment tracker, travel booking, car rental calculator, contact form, IT quote basket, chat widget (AI Assistant + Live Chat intake).
 Known site defects are tagged `@defect` and logged in [`DEFECTS.md`](DEFECTS.md).
 
 | # | Scenario | Type | Status |

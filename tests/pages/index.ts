@@ -12,3 +12,8 @@ export type { RentalRequest, VehicleFilter } from './RentalView';
 export { SiteHeader } from './components/SiteHeader';
 export { SiteFooter } from './components/SiteFooter';
 export { MobileMenu } from './components/MobileMenu';
+export type { ItCategory } from './ItServicesView';
+export { ContactForm } from './components/ContactForm';
+export type { ContactInquiry } from './components/ContactForm';
+export { ChatWidget } from './components/ChatWidget';
+export type { ChatMode, LiveChatIntake } from './components/ChatWidget';

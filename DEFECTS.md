@@ -22,12 +22,12 @@ Each of those tests is tagged `@defect` plus its ID:
 
 | ID | Title | Area | Severity | Covered by test |
 |---|---|---|---|---|
-| LUL-001 | Contact form promises a follow-up but sends nothing | Contact | **High** | Not yet |
+| LUL-001 | Contact form promises a follow-up but sends nothing | Contact | **High** | Yes |
 | LUL-002 | Travel form says "Booking request received" but sends nothing | Travel | **High** | Yes |
-| LUL-003 | "Request quote" in the IT basket sends nothing | IT Services | Medium | Not yet |
+| ~~LUL-003~~ | ~~"Request quote" in the IT basket sends nothing~~ **Closed: not a defect** (it fills the contact form; see LUL-001) | IT Services | — | Yes (pins behavior) |
 | LUL-004 | Validation messages never appear on the calculator forms | Logistics, Travel, Rental | Medium | Yes |
 | LUL-005 | Shipment tracker shows a made-up status for any number | Logistics | Medium | Yes (pins behavior) |
-| LUL-006 | Chat button is hidden at the very bottom of the page | Chat | Medium | Not yet |
+| LUL-006 | Chat button is hidden at the very bottom of the page | Chat | Medium | Yes |
 | LUL-007 | "Today" uses UTC: past dates accepted from 00:00 to 08:00 Manila time | Travel, Rental | Medium | Yes |
 | LUL-008 | Old totals stay on screen after an invalid re-submit | Logistics, Travel, Rental | Low | Yes |
 | LUL-009 | Site sometimes takes over 10 seconds to appear (blank page) | Whole site | Low | Indirectly |
@@ -37,6 +37,8 @@ Each of those tests is tagged `@defect` plus its ID:
 | LUL-013 | Two icons don't render ("layers-3", "route") | Whole site | Low | No |
 | LUL-014 | Tailwind is loaded from its development CDN | Whole site | Low | No |
 | LUL-015 | "Get a quote" button is missing on phones | Mobile | Low (question) | No |
+| LUL-016 | Live Chat can't be started with any normal email | Chat | **High** | Yes |
+| LUL-017 | AI chat gives the IT answer to any question containing "it" (with, visit…) | Chat | Low | Yes |
 
 ---
 
@@ -48,6 +50,8 @@ Each of those tests is tagged `@defect` plus its ID:
 - **Expected:** the inquiry reaches LULAN PH (an email, CRM, or form service).
 - **Actual:** the page shows *"Your inquiry is ready. Thank you. A LULAN PH coordinator will follow up using the email you provided."*, but **no network request is made**. The message is lost.
 - **Evidence:** one-time recon on 2026-10-22, with every network request watched during the submit.
+- **Also affects:** IT quote requests. "Request quote" copies the basket into this form, so those requests are lost too.
+- **Test:** `tests/forms/contact.spec.ts` → "does not promise a follow-up when nothing was sent"
 - **Suggested fix:** connect the form to a submission service, or change the message until one is connected.
 
 ### LUL-002: Travel form says "Booking request received" but sends nothing
@@ -57,12 +61,11 @@ Each of those tests is tagged `@defect` plus its ID:
 - **Actual:** the page shows *"Booking request received. Our travel desk will confirm availability and send payment instructions by email within 24 hours."* Nothing is sent.
 - **Test:** `tests/forms/travel.spec.ts` → "does not claim a booking was received when nothing was sent"
 
-### LUL-003: "Request quote" in the IT basket sends nothing
-- **Severity:** Medium (needs an owner decision)
-- **Steps:** IT Services → **Add to quote** on any item → **Request quote**.
-- **Actual:** the basket shows an estimated total (*"Build a planning estimate for this session"*). No request is sent.
-- **Note:** if this is meant to be an estimate only, rename the button (e.g. "Show estimate"). If it's meant to request a quote, connect it like LUL-001.
-- **Evidence:** recon on 2026-10-22.
+### LUL-003: "Request quote" in the IT basket sends nothing (Closed: not a defect)
+- **Status:** Closed on 2026-10-23
+- **Original report:** clicking **Request quote** didn't send anything.
+- **Finding:** this is by design. Request quote copies the basket into the contact form (service = IT Services, message = item list + estimated total), jumps to the form, and focuses the name field. The real problem is that the contact form itself sends nothing, which is logged as **LUL-001**.
+- **Test:** `tests/forms/it-quote.spec.ts` → "requesting a quote attaches the basket to the contact form"
 
 ### LUL-004: Validation messages never appear on the calculator forms
 - **Severity:** Medium
@@ -90,6 +93,7 @@ Each of those tests is tagged `@defect` plus its ID:
 
   Visitors only find the chat if they scroll to the very end.
 - **Evidence:** verification script on 2026-10-23 (button position measured, and a click failed with *"element is outside of the viewport"*).
+- **Test:** `tests/forms/chat.spec.ts` → "chat launcher is on screen without scrolling"
 
 ### LUL-007: "Today" uses UTC, so past dates are accepted from 00:00 to 08:00 Manila time
 - **Severity:** Medium
@@ -135,3 +139,23 @@ Each of those tests is tagged `@defect` plus its ID:
 ### LUL-015: "Get a quote" button is missing on phones
 - **Severity:** Low (question for the owner)
 - **Actual:** at phone width (390 px), the header's **Get a quote** button is hidden, even when the menu is open. If that's intended, ignore this. If not, add it to the mobile menu.
+
+### LUL-016: Live Chat can't be started with any normal email
+- **Severity:** High
+- **Steps:** open the chat → **Live Chat** → enter a name and a normal email (e.g. `ana@example.com`) → **Start chat**.
+- **Expected:** the live chat starts (*"Thanks, Ana! Your … inquiry is queued."*).
+- **Actual:** *"Please enter a name and valid email."* appears for every normal email. The email check in the page script was written with doubled backslashes:
+  ```
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  ```
+  That pattern needs a literal backslash before the dot and rejects the letter "s", so `ana@example.com` and `juan@example.com` both fail, while `ana@example\.com` is accepted. **Live Chat can't be used at all.**
+- **Test:** `tests/forms/chat.spec.ts` → "a valid name and email start a live chat"
+- **Suggested fix:** use single backslashes, `/^[^\s@]+@[^\s@]+\.[^\s@]+$/`, the same pattern the contact form already uses.
+
+### LUL-017: AI chat gives the IT answer to any question containing "it"
+- **Severity:** Low
+- **Steps:** open the chat → ask *"Can I visit Boracay with my family?"*
+- **Expected:** the travel answer.
+- **Actual:** the IT Services answer. The assistant checks `question.includes('it')` before anything else, so any word containing "it" (*with, visit, city, quite*) is treated as an IT question.
+- **Test:** `tests/forms/chat.spec.ts` → "a travel question that contains "with" gets the travel answer"
+- **Suggested fix:** match whole words (e.g. `/\bit\b/`), or check the more specific services first.
