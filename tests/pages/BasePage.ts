@@ -16,8 +16,9 @@ export class BasePage {
 
   async navigateTo(path = '/'): Promise<Response | null> {
     const response = await this.page.goto(path, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    // The outer page is an empty shell; wait until Canva has rendered the site inside the iframe
-    await expect(this.navMenu).toBeVisible();
+    // The outer page is an empty shell; wait until Canva has rendered the site inside the iframe.
+    // Canva occasionally takes >10s to render, so allow longer than the default expect timeout.
+    await expect(this.navMenu).toBeVisible({ timeout: 20000 });
     return response;
   }
 

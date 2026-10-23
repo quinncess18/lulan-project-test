@@ -24,8 +24,12 @@ fixtures/
   visual-fixture.ts    # stablePage fixture for screenshot tests
 tests/
   pages/               # Page Object Model (BasePage → ViewPage → 5 views)
-  smoke/               # *.smoke.spec.ts
+    components/        # SiteHeader, SiteFooter, MobileMenu
+  smoke/               # *.smoke.spec.ts: site up, views, nav, 404
+  pages-check/         # header/footer, footer nav, images, mobile menu
+  forms/               # logistics, travel, rental calculators (real, no mocks)
 playwright.config.ts
+DEFECTS.md             # site defects found by the suite
 ```
 
 ## Getting started
@@ -44,6 +48,7 @@ npx playwright install chromium
 | `npm run test:ui` | Playwright UI mode |
 | `npm run test:debug` | Step through with the inspector |
 | `npm run report` | Open the last HTML report |
+| `npx playwright test --grep @defect` | Only the tests for known site defects (see [`DEFECTS.md`](DEFECTS.md)) |
 
 Locally, tests run **headed** in Chromium, one at a time, so you can watch them. Uncomment `slowMo` in `playwright.config.ts` to slow them down. On CI (`CI=true`), they run headless.
 

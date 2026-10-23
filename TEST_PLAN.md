@@ -76,28 +76,30 @@ The key idea is to **intercept the browser's network calls with Playwright `page
 
 | # | Scenario | Type | Status |
 |---|---|---|---|
-| 1 | Header and footer render consistently on every page | Happy path | ⬜ |
-| 2 | Every nav link goes to the correct page/URL | Happy path | ⬜ |
-| 3 | No broken internal links (`request.head` → status < 400) | Health | ⬜ |
-| 4 | No broken images (`naturalWidth > 0`) | Health | ⬜ |
-| 5 | External links open in a new tab with `rel="noopener"` | Edge case | ⬜ |
-| 6 | Mobile menu (hamburger) opens/closes and links work | Happy path | ⬜ |
+| 1 | Header and footer render on every view | Happy path | 🔵 |
+| 2 | Every footer nav button and the brand/logo go to the correct view (header nav: smoke) | Happy path | 🔵 |
+| 3 | No broken internal links. _N/A: the site has no `<a href>`; covered by #2_ | Health | — |
+| 4 | No broken images on any view, plus header/footer logos | Health | 🔵 |
+| 5 | Links opening a new tab use `rel="noopener"` (guards future links; none today) | Edge case | 🔵 |
+| 6 | Mobile menu (hamburger) opens, switches the view, and closes | Happy path | 🔵 |
 
-### 3.3 Forms — `tests/forms/*.spec.ts` (backend mocked)
+### 3.3 Forms — `tests/forms/*.spec.ts` (real, no mocks)
 
-Repeat this table per form once the forms are known.
+Covered: logistics freight estimate + shipment tracker, travel booking, car rental calculator.
+**Still to do:** contact form, IT quote basket, chat widget.
+Known site defects are tagged `@defect` and logged in [`DEFECTS.md`](DEFECTS.md).
 
 | # | Scenario | Type | Status |
 |---|---|---|---|
-| 1 | Form fields, labels, and submit button are visible | Happy path | ⬜ |
-| 2 | Valid fill-up → submit → success message (mocked 200) | Happy path | ⬜ |
-| 3 | Submitted payload contains the entered values | Happy path | ⬜ |
-| 4 | Required fields empty → validation messages, no request sent | Negative | ⬜ |
-| 5 | Invalid email / phone format → validation message | Negative | ⬜ |
-| 6 | Server error (mocked 500) → user sees an error, input is kept | Negative | ⬜ |
-| 7 | Network failure (`route.abort`) → user sees an error | Negative | ⬜ |
-| 8 | Slow response → loading state shown, button disabled (no double submit) | Edge case | ⬜ |
-| 9 | Max-length / special characters accepted or rejected per spec | Edge case | ⬜ |
+| 1 | Form fields, labels, and submit button are visible | Happy path | 🔵 |
+| 2 | Valid fill-up → result shown with correct computed values | Happy path | 🔵 |
+| 3 | Typed values never leave the browser (`networkGuard.expectNotSent`) | Happy path | 🔵 |
+| 4 | Required fields empty → fields marked invalid, no result | Negative | 🔵 |
+| 5 | Invalid email / out-of-range numbers / bad date order rejected | Negative | 🔵 |
+| 6 | Server error (mocked 500). _N/A: forms send nothing_ | Negative | — |
+| 7 | Network failure (`route.abort`). _N/A: forms send nothing_ | Negative | — |
+| 8 | Slow response / loading state. _N/A: forms send nothing_ | Edge case | — |
+| 9 | Max-length / special characters. _Not covered: no limits, nothing sent_ | Edge case | ⬜ |
 
 ### 3.4 Loading / Performance — `tests/loading/*.spec.ts`
 
