@@ -1,5 +1,19 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const BROWSERS = {
+  chromium: { ...devices['Desktop Chrome'] },
+  firefox: {
+    ...devices['Desktop Firefox'],
+    launchOptions: {
+      headless: !!process.env.CI,
+      // Headed Firefox on Windows pauses rendering in a window covered by another one,
+      // so clicks hang waiting for the element to be "stable". Keep rendering on.
+      firefoxUserPrefs: { 'widget.windows.window_occlusion_tracking.enabled': false },
+    },
+  },
+  webkit: { ...devices['Desktop Safari'] }, // Safari's engine
+};
+
 export default defineConfig({
   testDir: './tests',
   timeout: 30000, // 30 seconds per test — live site, Canva iframe takes ~3s to render
@@ -20,8 +34,9 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
-  /* One browser window at a time so headed runs are easy to watch */
-  workers: 1,
+  /* One browser window at a time locally so headed runs are easy to watch; 3 at once on CI
+     (the loading projects are run separately on CI with --workers=1, see the workflow) */
+  workers: process.env.CI ? 3 : 1,
   testMatch: '**/*.spec.ts',
   reporter: [
     ['list'],
@@ -49,31 +64,23 @@ export default defineConfig({
     {
       name: 'smoke-chromium',
       testMatch: /.*\.smoke\.spec\.ts/,
-      use: { ...devices['Desktop Chrome'] },
+      use: BROWSERS.chromium,
     },
 
-    // Functional tests (pages-check, forms, loading) - excluding smoke and visual
-    {
-      name: 'chromium',
-      testIgnore: ['**/*.smoke.spec.ts', '**/*.visual.spec.ts'],
-      use: { ...devices['Desktop Chrome'] },
-    },
+    // Functional tests (pages-check, forms) in each browser. Firefox and WebKit also run smoke.
+    // Chromium-only tests (CDP throttling) are tagged @chromium-only.
+    { name: 'chromium', testIgnore: ['**/*.smoke.spec.ts', '**/*.visual.spec.ts', '**/loading/**'], use: BROWSERS.chromium },
+    { name: 'firefox', testIgnore: ['**/*.visual.spec.ts', '**/loading/**'], grepInvert: /@chromium-only/, use: BROWSERS.firefox },
+    { name: 'webkit', testIgnore: ['**/*.visual.spec.ts', '**/loading/**'], grepInvert: /@chromium-only/, use: BROWSERS.webkit },
 
-    // Firefox - smoke + functional tests. Chromium-only tests (CDP throttling) are tagged @chromium-only.
-    {
-      name: 'firefox',
-      testIgnore: ['**/*.visual.spec.ts'],
-      grepInvert: /@chromium-only/,
-      use: {
-        ...devices['Desktop Firefox'],
-        launchOptions: {
-          headless: !!process.env.CI,
-          // Headed Firefox on Windows pauses rendering in a window covered by another one,
-          // so clicks hang waiting for the element to be "stable". Keep rendering on.
-          firefoxUserPrefs: { 'widget.windows.window_occlusion_tracking.enabled': false },
-        },
-      },
-    },
+    // Loading tests measure time, so they get their own projects. CI runs these first with
+    // --workers=1, so no other test competes for CPU or network while timing is measured.
+    ...(['chromium', 'firefox', 'webkit'] as const).map(browser => ({
+      name: `loading-${browser}`,
+      testMatch: /loading\/.*\.spec\.ts/,
+      grepInvert: browser === 'chromium' ? undefined : /@chromium-only/,
+      use: BROWSERS[browser],
+    })),
 
     // Visual tests - always headless (headed and headless Chromium render slightly differently,
     // so baselines must be made and compared in the same mode). Baselines are Windows (win32);

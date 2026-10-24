@@ -21,7 +21,7 @@ No backend access and no test data. The live site is treated as a black box, wit
 | 4 | Is real form submission on prod allowed? | **Moot: the forms send nothing.** A one-time recon on 2026-10-22 submitted the contact form, an IT quote, and an AI-chat message. All of them only update the page. The only POST is Canva's console-log telemetry to `*.canvacode.com/codelet/…`, which never contains form data |
 | 5 | Any CAPTCHA / reCAPTCHA on the forms? | None found |
 | 6 | Stable `data-testid` attributes? | None, but descriptive `id`s throughout (`#travel-email`, `#logistics-total`, …) → ids/roles/labels **inside `frameLocator()`** |
-| 7 | Browsers / devices | Chromium (all suites, visual at 4 screen sizes) and Firefox (smoke + functional). WebKit is next |
+| 7 | Browsers / devices | Chromium (all suites, visual at 4 screen sizes), Firefox and WebKit (smoke + functional). WebKit on Windows approximates Safari; it is not real Safari on macOS/iOS |
 | 8 | Run in CI (GitHub Actions), or local only? | CI on every push/PR (`windows-latest`), all projects including visual |
 
 ---

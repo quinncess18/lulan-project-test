@@ -39,6 +39,7 @@ Each of those tests is tagged `@defect` plus its ID:
 | LUL-015 | "Get a quote" button is missing on phones | Mobile | Low (question) | No |
 | LUL-016 | Live Chat can't be started with any normal email | Chat | **High** | Yes |
 | LUL-017 | AI chat gives the IT answer to any question containing "it" (with, visit…) | Chat | Low | Yes |
+| LUL-018 | Script error on every page load in Safari (WebKit) | Whole site (Canva) | Low | Indirectly |
 
 ---
 
@@ -160,3 +161,10 @@ Each of those tests is tagged `@defect` plus its ID:
 - **Actual:** the IT Services answer. The assistant checks `question.includes('it')` before anything else, so any word containing "it" (*with, visit, city, quite*) is treated as an IT question.
 - **Test:** `tests/forms/chat.spec.ts` → "a travel question that contains "with" gets the travel answer"
 - **Suggested fix:** match whole words (e.g. `/\bit\b/`), or check the more specific services first.
+
+### LUL-018: Script error on every page load in Safari (WebKit)
+- **Severity:** Low (Canva platform)
+- **Where:** every page load, in WebKit (Safari's engine) only. Chromium and Firefox don't show it.
+- **Actual:** an uncaught error, *"Blocked a frame with origin "https://lulan.com.ph" from accessing a frame with origin "https://…canvacode.com". Protocols, domains, and ports must match."* It comes from Canva's own wrapper script (`/_assets/e91622c16459c44c.js`), which tries to read into the Canva iframe. Nothing visible breaks: the site renders and every form works in WebKit.
+- **Test:** `tests/smoke/site.smoke.spec.ts` → "no uncaught JS errors…" ignores this one known message, so any *new* script error still fails the test.
+- **Suggested fix:** none on the owner's side, since it's in Canva's code. Worth re-checking after a Canva re-publish, or reporting to Canva support if Safari users see problems.

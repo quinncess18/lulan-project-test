@@ -3,7 +3,7 @@ on: [push, pull_request]
 
 jobs:
   test:
-    timeout-minutes: 45
+    timeout-minutes: 60
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -11,8 +11,31 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
-      - run: npx playwright install --with-deps chromium firefox
-      - run: npx playwright test
+      - run: npx playwright install --with-deps chromium firefox webkit
+
+      # Timing tests first, one at a time, so nothing else competes while load times are measured
+      - name: Loading tests (1 worker)
+        run: npx playwright test --project="loading-*" --workers=1
+        env:
+          PLAYWRIGHT_BLOB_OUTPUT_DIR: blob-report/loading
+
+      # Everything else, 3 at a time (workers set in playwright.config.ts). Runs even if loading failed.
+      - name: All other tests (3 workers)
+        if: success() || failure()
+        run: npx playwright test --project=smoke-chromium --project=chromium --project=firefox --project=webkit --project="visual-*"
+        env:
+          PLAYWRIGHT_BLOB_OUTPUT_DIR: blob-report/main
+
+      # One HTML report for both runs
+      - name: Merge reports
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p all-blobs
+          cp blob-report/*/*.zip all-blobs/ 2>/dev/null || true
+          npx playwright merge-reports --reporter html all-blobs
+        env:
+          PLAYWRIGHT_HTML_OPEN: never
       - uses: actions/upload-artifact@v4
         if: always()
         with:

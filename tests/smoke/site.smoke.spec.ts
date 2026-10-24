@@ -36,7 +36,11 @@ test.describe('Smoke - site health', () => {
 
   test('no uncaught JS errors while loading and switching views', async ({ page }) => {
     const errors: string[] = [];
-    page.on('pageerror', e => errors.push(`pageerror: ${e.message}`));
+    // Known (LUL-018): in WebKit, Canva's wrapper script throws a cross-origin error on every load
+    const knownError = /Blocked a frame with origin "https:\/\/lulan\.com\.ph"/;
+    page.on('pageerror', e => {
+      if (!knownError.test(e.stack ?? e.message)) errors.push(`pageerror: ${e.message}`);
+    });
     // Firefox logs its own rejection of Cloudflare's __cf_bm cookie (set by the Canva iframe host)
     // as a console error. That's browser cookie policy, not a script error on the site.
     const browserNotice = /Cookie “__cf_bm” has been rejected/;

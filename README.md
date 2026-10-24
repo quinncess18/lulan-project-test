@@ -38,7 +38,7 @@ DEFECTS.md             # site defects found by the suite
 
 ```bash
 npm ci
-npx playwright install chromium firefox
+npx playwright install chromium firefox webkit
 ```
 
 ## Running tests
