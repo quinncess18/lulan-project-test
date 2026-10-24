@@ -58,6 +58,22 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
 
+    // Firefox - smoke + functional tests. Chromium-only tests (CDP throttling) are tagged @chromium-only.
+    {
+      name: 'firefox',
+      testIgnore: ['**/*.visual.spec.ts'],
+      grepInvert: /@chromium-only/,
+      use: {
+        ...devices['Desktop Firefox'],
+        launchOptions: {
+          headless: !!process.env.CI,
+          // Headed Firefox on Windows pauses rendering in a window covered by another one,
+          // so clicks hang waiting for the element to be "stable". Keep rendering on.
+          firefoxUserPrefs: { 'widget.windows.window_occlusion_tracking.enabled': false },
+        },
+      },
+    },
+
     // Visual tests - always headless (headed and headless Chromium render slightly differently,
     // so baselines must be made and compared in the same mode). Baselines are Windows (win32);
     // CI runs on windows-latest to match.

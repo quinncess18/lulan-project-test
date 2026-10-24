@@ -82,8 +82,11 @@ test.describe('Forms - Chat widget', () => {
 
   // SITE BUG: the widget is fixed inside Canva's full-height iframe, so the launcher sits at the
   // very bottom of the page (y ≈ 2635 px of 2717 on desktop) instead of the corner of the screen.
-  test('chat launcher is on screen without scrolling', { tag: ['@defect', '@LUL-006'] }, async () => {
+  test('chat launcher is on screen without scrolling', { tag: ['@defect', '@LUL-006'] }, async ({ page }) => {
     test.fail();
+    // Measure only once Canva has grown the iframe to the full page height (it starts one screen tall)
+    const iframe = new HomeView(page).iframe;
+    await expect.poll(async () => (await iframe.boundingBox())?.height ?? 0).toBeGreaterThan(page.viewportSize()!.height);
     await expect(chat.launcher).toBeVisible();
 
     expect(await chat.launcherOnScreen()).toBe(true);

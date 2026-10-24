@@ -1,26 +1,27 @@
-# Test Plan — Lulan (DRAFT)
+# Test Plan — Lulan
 
-Live-site UI testing: smoke, page checks, form fill-up, loading, and visual.
-No backend access and no test data. The live site is treated as a black box.
+Live-site UI testing: smoke, page checks, forms, loading, and visual.
+No backend access and no test data. The live site is treated as a black box, with the owner's permission.
 
 **Legend**
 - ⬜ Not started
 - 🔵 Exists, not yet gap-analyzed
 - ✅ Reviewed
+- — Not applicable
 
 ---
 
-## 0. Open Questions (fill in before scaffolding)
+## 0. Open Questions
 
 | # | Question | Answer |
 |---|---|---|
 | 1 | Base URL of the live site | `https://lulan.com.ph/` (owner approved testing; low traffic) |
 | 2 | List of pages to cover (paths) | No separate paths. It's a one-page Canva site, and all content sits in **one cross-origin iframe** (`*.canvacode.com`). Its nav buttons switch between views: Home, Logistics, Travel & Tours, Car Rental, IT Services |
-| 3 | List of forms (contact, newsletter, booking, login, etc.) | `#logistics-quote-form`, `#logistics-tracker-form`, `#travel-booking-form`, `#rental-calculator`, `#contact-form`, `#chatInputForm` (+ chat name/email/service), IT quote basket. None has an `action` attribute |
-| 4 | Is real form submission on prod allowed? (emails/leads get created) | **Moot: the forms send nothing.** A one-time recon on 2026-10-22 submitted the contact form, an IT quote, and an AI-chat message. All of them only update the page ("Your inquiry is ready…", basket total, canned AI reply). The only POST is Canva's console-log telemetry to `*.canvacode.com/codelet/…`, which never contains form data. So we test forms for real (no mocks), and a network guard fails the test if any form value leaves the browser. The Live Chat intro (`#chatName`/`#chatEmail`) wasn't reached: the launcher sits off-screen inside the 2717px-tall iframe |
+| 3 | List of forms | `#logistics-quote-form`, `#logistics-tracker-form`, `#travel-booking-form`, `#rental-calculator`, `#contact-form`, `#chatInputForm` (+ Live Chat name/email/service), IT quote basket. None has an `action` attribute |
+| 4 | Is real form submission on prod allowed? | **Moot: the forms send nothing.** A one-time recon on 2026-10-22 submitted the contact form, an IT quote, and an AI-chat message. All of them only update the page. The only POST is Canva's console-log telemetry to `*.canvacode.com/codelet/…`, which never contains form data |
 | 5 | Any CAPTCHA / reCAPTCHA on the forms? | None found |
-| 6 | Does the site use stable `data-testid` attributes, or do we rely on roles/labels? | No `data-testid`, but descriptive `id`s throughout (`#travel-email`, `#logistics-total`, …) → use ids/roles **inside `frameLocator()`** |
-| 7 | Browsers / devices needed (desktop Chrome only, or Firefox/WebKit/mobile too)? | _TBD_ |
+| 6 | Stable `data-testid` attributes? | None, but descriptive `id`s throughout (`#travel-email`, `#logistics-total`, …) → ids/roles/labels **inside `frameLocator()`** |
+| 7 | Browsers / devices | Chromium (all suites, visual at 4 screen sizes) and Firefox (smoke + functional). WebKit is next |
 | 8 | Run in CI (GitHub Actions), or local only? | CI on every push/PR (`windows-latest`), all projects including visual |
 
 ---
@@ -28,35 +29,30 @@ No backend access and no test data. The live site is treated as a black box.
 ## 1. Scope
 
 **In scope**
-- Smoke: site is up, key pages load, no fatal console errors
-- Pages: navigation, header/footer, links, images, page titles
-- Forms: client-side validation and submission behavior, with the backend **mocked**
-- Loading: load-time budgets, broken assets, loading states/spinners
-- Visual: screenshot baselines on desktop, tablet, and mobile
+- Smoke: site is up, every view opens, no fatal console errors, 404 page
+- Pages: header/footer, footer nav, images, mobile menu
+- Forms: client-side validation, computed results, and confirmation messages, tested for real (no mocks)
+- Loading: load-time and page-weight budgets, failed requests, slow network
+- Visual: screenshot baselines at desktop, widescreen, tablet, and phone sizes
+- Site defects found along the way, logged in [`DEFECTS.md`](DEFECTS.md)
 
 **Out of scope**
-- Backend/API correctness, database state, emails actually being delivered
-- Login-protected areas (unless credentials are provided)
-- Load/stress testing, security testing
+- Backend/API, database, email delivery (the site has none today)
+- Load/stress testing and security testing (beyond checking that typed HTML isn't run)
 
 ---
 
-## 2. How we test without the backend
+## 2. How we test without a backend
 
-The key idea is to **intercept the browser's network calls with Playwright `page.route()`**.
+The site is a Canva export, and every form is client-side only, so there is nothing to mock.
 
 | Need | Approach |
 |---|---|
-| Find what the form calls | Submit once manually with DevTools → Network open (or a `page.on('request')` recon script), and note the URL, method, and payload |
-| Don't create junk data on prod | `page.route('**/<form-endpoint>', r => r.fulfill({ status: 200, body: ... }))`. The request never reaches the server |
-| Verify the form sends the right data | Capture the intercepted request and assert on `request.postDataJSON()` / form fields |
-| Test the success UI | Fulfill with a 200 → assert the thank-you message/redirect |
-| Test the error UI | Fulfill with 400/500, or `route.abort()` → assert that an error message appears and the form keeps its input |
-| Test the loading state | Delay the fulfill (e.g. 2s) → assert the spinner shows / the button is disabled (no double submit) |
-| Third-party embeds (Google Forms, HubSpot, Formspree, etc.) | Same: route their submit URL. If it's an iframe, scope locators with `frameLocator()` |
-| CAPTCHA | Can't be automated on prod. Stop at the step just before it, or mock the verification call. Flag it as a limitation |
-
-> Rule: **every form test in this suite must have a route mock in place before submit.** Add a guard that fails the test if an un-mocked POST leaves the page.
+| Reach the content | All locators go through `BasePage.frame` (`frameLocator('iframe[title="Embedded content"]')`) |
+| Switch views | Click the nav button, retried until the view gets the `active` class (`BasePage.goToView`). Canva attaches its click handlers a moment after the nav appears |
+| Test forms safely | Submit for real. Nothing leaves the browser, so no junk data is created |
+| Prove nothing is sent | The `networkGuard` auto fixture fails any test that makes an unexpected non-GET request (Canva telemetry to `*.canvacode.com/codelet/` is allowed). `networkGuard.expectNotSent(...)` checks that typed values never appear in any request |
+| Track site bugs | Each confirmed defect has a `test.fail()` test tagged `@defect @LUL-xxx`. It starts failing once the owner fixes the bug, as a reminder to remove the `test.fail()` |
 
 ---
 
@@ -67,7 +63,7 @@ The key idea is to **intercept the browser's network calls with Playwright `page
 | # | Scenario | Type | Status |
 |---|---|---|---|
 | 1 | Homepage returns HTTP 200 and renders the main heading | Happy path | 🔵 |
-| 2 | Each nav view (Logistics, Travel & Tours, Car Rental, IT Services) opens and shows its H1. _Adapted: one URL, no per-page titles_ | Happy path | 🔵 |
+| 2 | Each nav view (Logistics, Travel & Tours, Car Rental, IT Services) opens and shows its H1 | Happy path | 🔵 |
 | 3 | No uncaught JS errors in console on key pages | Health | 🔵 |
 | 4 | Primary navigation buttons are visible and enabled | Happy path | 🔵 |
 | 5 | Unknown path shows a 404 page (not a blank/500) | Negative | 🔵 |
@@ -86,7 +82,6 @@ The key idea is to **intercept the browser's network calls with Playwright `page
 ### 3.3 Forms — `tests/forms/*.spec.ts` (real, no mocks)
 
 Covered: logistics freight estimate + shipment tracker, travel booking, car rental calculator, contact form, IT quote basket, chat widget (AI Assistant + Live Chat intake).
-Known site defects are tagged `@defect` and logged in [`DEFECTS.md`](DEFECTS.md).
 
 | # | Scenario | Type | Status |
 |---|---|---|---|
@@ -95,10 +90,8 @@ Known site defects are tagged `@defect` and logged in [`DEFECTS.md`](DEFECTS.md)
 | 3 | Typed values never leave the browser (`networkGuard.expectNotSent`) | Happy path | 🔵 |
 | 4 | Required fields empty → fields marked invalid, no result | Negative | 🔵 |
 | 5 | Invalid email / out-of-range numbers / bad date order rejected | Negative | 🔵 |
-| 6 | Server error (mocked 500). _N/A: forms send nothing_ | Negative | — |
-| 7 | Network failure (`route.abort`). _N/A: forms send nothing_ | Negative | — |
-| 8 | Slow response / loading state. _N/A: forms send nothing_ | Edge case | — |
-| 9 | Max-length / special characters. _Not covered: no limits, nothing sent_ | Edge case | ⬜ |
+| 6 | Server error, network failure, slow response. _N/A: forms send nothing_ | Negative | — |
+| 7 | Accented names, emoji, and a 5,000-character message are accepted; typed HTML is shown as text, never run (contact form, AI chat) | Edge case | 🔵 |
 
 ### 3.4 Loading / Performance — `tests/loading/*.spec.ts`
 
@@ -108,7 +101,7 @@ Known site defects are tagged `@defect` and logged in [`DEFECTS.md`](DEFECTS.md)
 | 2 | Full `load` < 7 s; page weight < 4 MB | Budget | 🔵 |
 | 3 | No failed requests (4xx/5xx/aborted) while loading and visiting every view | Health | 🔵 |
 | 4 | Lazy-loaded images load after scroll. _Covered by pages-check "no broken images"_ | Happy path | 🔵 |
-| 5 | Site renders and a view switch works on Fast 3G (CDP, Chromium only) | Edge case | 🔵 |
+| 5 | Site renders and a view switch works on Fast 3G (CDP, Chromium only: tagged `@chromium-only`) | Edge case | 🔵 |
 
 > Baseline measured 2026-10-23 (cold load): DOMContentLoaded 2.96 s, load 4.89 s, site visible 4.97 s, 2.85 MB. On Fast 3G the site was visible after ~14.8 s.
 > Timing on a live site is noisy, so budgets are generous; tighten them after a few runs.
@@ -117,34 +110,35 @@ Known site defects are tagged `@defect` and logged in [`DEFECTS.md`](DEFECTS.md)
 
 | # | Scenario | Type | Status |
 |---|---|---|---|
-| 1 | Homepage baseline. _Covered by #2 (full page includes above the fold)_ | Visual | 🔵 |
-| 2 | Each of the 5 views, full-page baseline | Visual | 🔵 |
-| 3 | Header / footer component baselines (desktop + phone) | Visual | 🔵 |
-| 4 | Contact and travel forms in validation-error state (desktop + phone) | Visual | 🔵 |
-| 5 | Responsive: desktop 1280, widescreen 1920, tablet 768, phone 390 | Visual | 🔵 |
+| 1 | Each of the 5 views, full-page baseline | Visual | 🔵 |
+| 2 | Header / footer component baselines (desktop + phone) | Visual | 🔵 |
+| 3 | Contact and travel forms in validation-error state (desktop + phone) | Visual | 🔵 |
+| 4 | Responsive: desktop 1280, widescreen 1920, tablet 768, phone 390 | Visual | 🔵 |
 
 > Notes:
-> - Visual projects always run **headless** (headed and headless Chromium render differently). Baselines are Windows (`-win32`) and CI runs on `windows-latest` to match. Update the baselines with `npm run test:visual:update`.
+> - Visual projects always run **headless** in Chromium (headed and headless render differently). Baselines are Windows (`-win32`) and CI runs on `windows-latest` to match. Update the baselines with `npm run test:visual:update`.
 > - Chromium only paints the part of the cross-origin Canva iframe that is inside the window, so `BasePage.fitViewportToPage()` makes the window as tall as the iframe before a full-page shot. The site's layout doesn't depend on window height.
 > - No masks are needed today. The site has no rotating or date-based content, and animations are disabled in the config.
 
 ---
 
-## 4. Proposed structure
+## 4. Structure
 
 ```
 lulan-project-test/
 ├── fixtures/
-│   ├── visual-fixture.ts
-│   └── network-guard.ts        # fails test on un-mocked POST
+│   ├── network-guard.ts        # auto fixture: fails on unexpected non-GET; expectNotSent()
+│   └── visual-fixture.ts       # stablePage for screenshot tests
 ├── tests/
-│   ├── pages/                  # page objects (BasePage + per page)
+│   ├── pages/                  # Page Object Model (BasePage → ViewPage → 5 views)
+│   │   └── components/         # header, footer, mobile menu, contact, chat, load metrics
 │   ├── smoke/
 │   ├── pages-check/
 │   ├── forms/
 │   ├── loading/
 │   └── visual/
 ├── playwright.config.ts
+├── DEFECTS.md
 ├── TEST_PLAN.md
 └── package.json
 ```
@@ -153,7 +147,8 @@ lulan-project-test/
 
 ## 5. Risks & limitations
 
-- **Live site changes without notice.** Visual baselines will need re-approval, and selectors may break.
-- **Mocked forms prove the front-end only.** They don't prove the backend actually receives or stores submissions.
-- **CAPTCHA / bot protection** may block automation or rate-limit CI runners.
-- **Performance numbers depend on the network** of whatever machine runs them. Treat them as trend checks, not hard SLAs.
+- **Live site changes without notice.** Visual baselines will need re-approval, and selectors may break. The site is a Canva export, so a re-publish can change the markup.
+- **Forms are client-side only.** The tests prove what the visitor sees, not that an inquiry reaches anyone. Today nothing does (LUL-001, LUL-002).
+- **Canva render time varies.** The site sometimes takes over 10 s to appear (LUL-009), so page loads wait up to 20 s and CI retries failures twice.
+- **Performance numbers depend on the network** of the machine running them. Treat them as trend checks, not hard SLAs.
+- **Visual baselines are platform-specific** (Windows). Running them on macOS/Linux needs a separate set of baselines.

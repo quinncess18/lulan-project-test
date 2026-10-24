@@ -37,7 +37,12 @@ test.describe('Smoke - site health', () => {
   test('no uncaught JS errors while loading and switching views', async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', e => errors.push(`pageerror: ${e.message}`));
-    page.on('console', m => { if (m.type() === 'error') errors.push(`console.error: ${m.text()}`); });
+    // Firefox logs its own rejection of Cloudflare's __cf_bm cookie (set by the Canva iframe host)
+    // as a console error. That's browser cookie policy, not a script error on the site.
+    const browserNotice = /Cookie “__cf_bm” has been rejected/;
+    page.on('console', m => {
+      if (m.type() === 'error' && !browserNotice.test(m.text())) errors.push(`console.error: ${m.text()}`);
+    });
 
     const home = new HomeView(page);
     await home.navigateTo();

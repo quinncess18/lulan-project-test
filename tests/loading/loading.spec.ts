@@ -50,7 +50,7 @@ test.describe('Loading - asset health', () => {
 
 test.describe('Loading - slow network', () => {
   // Measured 2026-10-23 on Fast 3G: site visible after ~14.8 s, load event after ~17.5 s
-  test('the site still renders and works on a Fast 3G connection', async ({ page }) => {
+  test('the site still renders and works on a Fast 3G connection', { tag: '@chromium-only' }, async ({ page }) => {
     test.setTimeout(90000);
     const metrics = new LoadMetrics(page);
     await metrics.throttleToFast3G();

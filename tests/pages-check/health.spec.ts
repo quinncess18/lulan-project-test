@@ -32,8 +32,11 @@ test.describe('Pages - health', () => {
       await viewPage.navigateTo();
       await viewPage.open();
 
-      // Every content image on the site has alt text, so alt-text lookup finds them all
-      const images = await viewPage.section.getByAltText(/.*/).all();
+      // Every content image on the site has alt text, so alt-text lookup finds them all.
+      // all() doesn't wait, so first wait for the view to draw at least one image.
+      const imageLocator = viewPage.section.getByAltText(/.*/);
+      await expect(imageLocator.first()).toBeAttached();
+      const images = await imageLocator.all();
       expect(images.length, `${label} view should have at least one image`).toBeGreaterThan(0);
       await expectImagesLoaded(images);
     });
