@@ -5,6 +5,8 @@
   "scripts": {
     "test": "playwright test",
     "test:smoke": "playwright test --project=smoke-chromium",
+    "test:visual": "playwright test --project=visual-*",
+    "test:visual:update": "playwright test --project=visual-* --update-snapshots",
     "test:ui": "playwright test --ui",
     "test:debug": "playwright test --debug",
     "report": "playwright show-report"

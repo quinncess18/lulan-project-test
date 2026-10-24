@@ -27,7 +27,9 @@ tests/
     components/        # SiteHeader, SiteFooter, MobileMenu
   smoke/               # *.smoke.spec.ts: site up, views, nav, 404
   pages-check/         # header/footer, footer nav, images, mobile menu
-  forms/               # logistics, travel, rental calculators (real, no mocks)
+  forms/               # contact, logistics, travel, rental, IT quote, chat (real, no mocks)
+  loading/             # load-time and page-weight budgets, failed requests, slow 3G
+  visual/              # screenshot baselines for 5 views at 4 screen sizes
 playwright.config.ts
 DEFECTS.md             # site defects found by the suite
 ```
@@ -45,6 +47,8 @@ npx playwright install chromium
 |---|---|
 | `npm test` | Run all tests |
 | `npm run test:smoke` | Smoke suite only |
+| `npm run test:visual` | Screenshot comparisons only |
+| `npm run test:visual:update` | Re-take the screenshot baselines after an intended site change |
 | `npm run test:ui` | Playwright UI mode |
 | `npm run test:debug` | Step through with the inspector |
 | `npm run report` | Open the last HTML report |

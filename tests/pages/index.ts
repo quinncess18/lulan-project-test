@@ -17,3 +17,4 @@ export { ContactForm } from './components/ContactForm';
 export type { ContactInquiry } from './components/ContactForm';
 export { ChatWidget } from './components/ChatWidget';
 export type { ChatMode, LiveChatIntake } from './components/ChatWidget';
+export { LoadMetrics } from './components/LoadMetrics';

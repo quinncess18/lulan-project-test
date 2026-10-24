@@ -111,6 +111,7 @@ Each of those tests is tagged `@defect` plus its ID:
 ### LUL-009: Site sometimes takes over 10 seconds to appear
 - **Severity:** Low (Canva platform)
 - **Actual:** usually the site renders in about 3 seconds. Rarely, the page stays blank for over 10 seconds while Canva loads the embedded site.
+- **Slow networks:** on an emulated Fast 3G connection the page stays blank for **~15 seconds** before the site appears (2.85 MB has to load first). Covered by `tests/loading/loading.spec.ts` → "the site still renders and works on a Fast 3G connection".
 - **Evidence:** 1 of 171 automated runs (2026-10-23). It probably also caused the first CI run to fail (unconfirmed). The tests now wait up to 20 seconds.
 
 ### LUL-010: Nav clicks are ignored for a moment after the page appears

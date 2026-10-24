@@ -21,7 +21,7 @@ No backend access and no test data. The live site is treated as a black box.
 | 5 | Any CAPTCHA / reCAPTCHA on the forms? | None found |
 | 6 | Does the site use stable `data-testid` attributes, or do we rely on roles/labels? | No `data-testid`, but descriptive `id`s throughout (`#travel-email`, `#logistics-total`, …) → use ids/roles **inside `frameLocator()`** |
 | 7 | Browsers / devices needed (desktop Chrome only, or Firefox/WebKit/mobile too)? | _TBD_ |
-| 8 | Run in CI (GitHub Actions), or local only? | _TBD_ |
+| 8 | Run in CI (GitHub Actions), or local only? | CI on every push/PR (`windows-latest`), all projects including visual |
 
 ---
 
@@ -104,26 +104,29 @@ Known site defects are tagged `@defect` and logged in [`DEFECTS.md`](DEFECTS.md)
 
 | # | Scenario | Type | Status |
 |---|---|---|---|
-| 1 | DOMContentLoaded under budget (e.g. < 3s) on key pages | Budget | ⬜ |
-| 2 | Full `load` under budget (e.g. < 5s) | Budget | ⬜ |
-| 3 | No failed network requests (4xx/5xx) for page assets | Health | ⬜ |
-| 4 | Lazy-loaded images load after scroll | Happy path | ⬜ |
-| 5 | Page still usable on throttled network (slow 3G via CDP, Chromium only) | Edge case | ⬜ |
+| 1 | DOMContentLoaded < 4 s; site drawn in the iframe < 8 s | Budget | 🔵 |
+| 2 | Full `load` < 7 s; page weight < 4 MB | Budget | 🔵 |
+| 3 | No failed requests (4xx/5xx/aborted) while loading and visiting every view | Health | 🔵 |
+| 4 | Lazy-loaded images load after scroll. _Covered by pages-check "no broken images"_ | Happy path | 🔵 |
+| 5 | Site renders and a view switch works on Fast 3G (CDP, Chromium only) | Edge case | 🔵 |
 
-> Timing on a live site is noisy, so budgets should be generous and get tightened after the first few runs.
-> Timings come from `performance.getEntriesByType('navigation')`.
+> Baseline measured 2026-10-23 (cold load): DOMContentLoaded 2.96 s, load 4.89 s, site visible 4.97 s, 2.85 MB. On Fast 3G the site was visible after ~14.8 s.
+> Timing on a live site is noisy, so budgets are generous; tighten them after a few runs.
 
 ### 3.5 Visual — `tests/visual/*.visual.spec.ts`
 
 | # | Scenario | Type | Status |
 |---|---|---|---|
-| 1 | Homepage above-the-fold baseline | Visual | ⬜ |
-| 2 | Each key page full-page baseline | Visual | ⬜ |
-| 3 | Header / footer component baselines | Visual | ⬜ |
-| 4 | Form default + validation-error state baselines | Visual | ⬜ |
-| 5 | Responsive: desktop 1280, widescreen 1920, tablet, mobile | Visual | ⬜ |
+| 1 | Homepage baseline. _Covered by #2 (full page includes above the fold)_ | Visual | 🔵 |
+| 2 | Each of the 5 views, full-page baseline | Visual | 🔵 |
+| 3 | Header / footer component baselines (desktop + phone) | Visual | 🔵 |
+| 4 | Contact and travel forms in validation-error state (desktop + phone) | Visual | 🔵 |
+| 5 | Responsive: desktop 1280, widescreen 1920, tablet 768, phone 390 | Visual | 🔵 |
 
-> Live content changes (banners, carousels, dates, ads). Use `mask: [...]` on dynamic regions, disable animations, and wait for fonts/images using the `stablePage` fixture (`fixtures/visual-fixture.ts`).
+> Notes:
+> - Visual projects always run **headless** (headed and headless Chromium render differently). Baselines are Windows (`-win32`) and CI runs on `windows-latest` to match. Update the baselines with `npm run test:visual:update`.
+> - Chromium only paints the part of the cross-origin Canva iframe that is inside the window, so `BasePage.fitViewportToPage()` makes the window as tall as the iframe before a full-page shot. The site's layout doesn't depend on window height.
+> - No masks are needed today. The site has no rotating or date-based content, and animations are disabled in the config.
 
 ---
 

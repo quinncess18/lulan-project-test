@@ -57,5 +57,22 @@ export default defineConfig({
       testIgnore: ['**/*.smoke.spec.ts', '**/*.visual.spec.ts'],
       use: { ...devices['Desktop Chrome'] },
     },
+
+    // Visual tests - always headless (headed and headless Chromium render slightly differently,
+    // so baselines must be made and compared in the same mode). Baselines are Windows (win32);
+    // CI runs on windows-latest to match.
+    // Component/form-state baselines (components.visual.spec.ts) run on desktop and phone only.
+    ...[
+      { name: 'visual-desktop', viewport: { width: 1280, height: 720 }, components: true },
+      { name: 'visual-widescreen', viewport: { width: 1920, height: 1080 }, components: false },
+      { name: 'visual-tablet', viewport: { width: 768, height: 1024 }, components: false },
+      { name: 'visual-mobile', viewport: { width: 390, height: 844 }, components: true },
+    ].map(({ name, viewport, components }) => ({
+      name,
+      testMatch: /.*\.visual\.spec\.ts/,
+      testIgnore: components ? [] : ['**/components.visual.spec.ts'],
+      fullyParallel: false,
+      use: { ...devices['Desktop Chrome'], viewport, launchOptions: { headless: true } },
+    })),
   ],
 });
