@@ -25,6 +25,7 @@ export default defineConfig({
   testMatch: '**/*.spec.ts',
   reporter: [
     ['list'],
+    ...(process.env.CI ? [['github'] as ['github']] : []), // failures as annotations on the Actions run
     ['blob'],
     ['html', {
       open: process.env.CI ? 'never' : 'always',  // 'always' | 'never' | 'on-failure' — never on CI so the job doesn't hang serving the report

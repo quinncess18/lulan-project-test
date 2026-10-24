@@ -14,6 +14,9 @@ export async function showView(page: Page, view: ViewName): Promise<BasePage> {
       await base.goToView(view);
     }
   }
+  // The site fades a view in (`animation: viewIn .5s`), and the config's `animations: 'disabled'`
+  // doesn't reach inside the cross-origin Canva iframe. On slow CI machines the shot caught it mid-fade.
+  await base.viewSection(view).evaluate(el => Promise.all(el.getAnimations().map(a => a.finished)));
   await base.fitViewportToPage();
   await base.waitForStableRender();
   return base;
